@@ -1,0 +1,11 @@
+       FD  CHILD-MASTER-FILE
+           LABEL RECORDS ARE STANDARD
+           BLOCK CONTAINS 0 RECORDS
+           RECORD CONTAINS 44 CHARACTERS
+           DATA RECORD IS CHILD-MASTER-RECORD.
+
+       01  CHILD-MASTER-RECORD.
+           05  CM-CHILD-ID         PIC 9(8).
+           05  CM-PARENT-ID        PIC 9(8).
+           05  CM-CHILD-NAME       PIC X(20).
+           05  CM-DATE-OF-BIRTH    PIC 9(8).   *> YYYYMMDD
