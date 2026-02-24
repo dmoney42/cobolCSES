@@ -110,8 +110,11 @@
 
                IF WS-PARENT-FOUND = "Y"
                   SUBTRACT WS-PAYMENT-AMOUNT-NUM
-                      FROM PM-TOTAL-ARREARS
-              
+                  FROM PM-TOTAL-ARREARS
+                  MOVE PARENT-MASTER-RECORD 
+                  TO UPDATED-PARENT-RECORD
+                  WRITE UPDATED-PARENT-RECORD              
+
                   DISPLAY "UPDATED ARREARS FOR PARENT: " PM-PARENT-ID
                   DISPLAY "NEW ARREARS BALANCE: " PM-TOTAL-ARREARS
                ELSE
@@ -127,6 +130,7 @@
 
            CLOSE PARENT-MASTER-FILE
                  CHILD-MASTER-FILE
-                 PAYMENT-TRANSACTION-FILE.
+                 PAYMENT-TRANSACTION-FILE
+                 UPDATED-PARENT-FILE.
 
            STOP RUN.
