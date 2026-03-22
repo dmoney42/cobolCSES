@@ -47,6 +47,14 @@
 
        01  WS-PARENT-FOUND        PIC X VALUE "N".
 
+       01  WS-REPORT-COUNTERS.
+           05  WS-TOTAL-PARENTS            PIC 9(7)     VALUE 0.
+           05  WS-CURRENT-COUNT            PIC 9(7)     VALUE 0.
+           05  WS-DELINQUENT-COUNT         PIC 9(7)     VALUE 0.
+           05  WS-SEVERE-COUNT             PIC 9(7)     VALUE 0.
+           05  WS-TOTAL-ARREARS-SUM        PIC 9(9)V99  VALUE 0.
+
+
 
        PROCEDURE DIVISION.
            DISPLAY "CHILD SUPPORT ENFORCEMENT SYSTEM STARTED".
@@ -59,6 +67,13 @@
            OPEN OUTPUT UPDATED-PARENT-FILE.
 
            DISPLAY "FILES OPENED SUCCESSFULLY".
+
+           MOVE 0 TO WS-TOTAL-PARENTS
+                     WS-CURRENT-COUNT
+                     WS-DELINQUENT-COUNT
+                     WS-SEVERE-COUNT
+                     WS-TOTAL-ARREARS-SUM.
+            
 
            READ PARENT-MASTER-FILE
                AT END MOVE "Y" TO WS-EOF-PARENTS
@@ -107,12 +122,18 @@
                    END-IF
 
                END-PERFORM
-
+       *> ======================================
+       *> SECOND PASS LOOP TO UPDATE ALL RECORDS
+       *> ======================================
                IF WS-PARENT-FOUND = "Y"
                   SUBTRACT WS-PAYMENT-AMOUNT-NUM
                   FROM PM-TOTAL-ARREARS
                   MOVE PARENT-MASTER-RECORD 
                   TO UPDATED-PARENT-RECORD
+       
+       *>         Counter updates for reporting
+                  ADD 1 TO WS-TOTAL-PARENTS
+
                   WRITE UPDATED-PARENT-RECORD              
 
                   DISPLAY "UPDATED ARREARS FOR PARENT: " PM-PARENT-ID
@@ -124,6 +145,51 @@
                READ PAYMENT-TRANSACTION-FILE
                    AT END MOVE "Y" TO WS-EOF-PAYMENTS
                END-READ
+
+           END-PERFORM.
+
+           MOVE "N" TO WS-EOF-PARENTS.
+           CLOSE PARENT-MASTER-FILE.
+           OPEN INPUT PARENT-MASTER-FILE.
+           
+           READ PARENT-MASTER-FILE
+               AT END MOVE "Y" TO WS-EOF-PARENTS
+           END-READ
+           
+           PERFORM UNTIL WS-EOF-PARENTS = "Y"
+              MOVE PARENT-MASTER-RECORD TO UPDATED-PARENT-RECORD
+              ADD 1 TO WS-TOTAL-PARENTS
+              MOVE "CURRENT" TO PM-STATUS-FLAG
+
+              IF PM-TOTAL-ARREARS > 500
+                  MOVE "SEVERELY DELINQUENT" TO PM-STATUS-FLAG
+              ELSE
+                  IF PM-TOTAL-ARREARS > 0
+                      MOVE "DELINQUENT" TO PM-STATUS-FLAG
+                  END-IF
+              END-IF
+
+                 ADD PM-TOTAL-ARREARS TO WS-TOTAL-ARREARS-SUM
+
+                  *> Then increment the correct status counter each 
+                  *> status
+                  IF PM-STATUS-FLAG = "CURRENT"
+                      ADD 1 TO WS-CURRENT-COUNT
+                  ELSE
+                      IF PM-STATUS-FLAG = "DELINQUENT"
+                          ADD 1 TO WS-DELINQUENT-COUNT
+                      ELSE
+                          IF PM-STATUS-FLAG = "SEVERELY DELINQUENT"
+                              ADD 1 TO WS-SEVERE-COUNT
+                          END-IF
+                      END-IF
+                  END-IF
+
+                  WRITE UPDATED-PARENT-RECORD
+
+              READ PARENT-MASTER-FILE
+                  AT END MOVE "Y" TO WS-EOF-PARENTS
+              END-READ
 
            END-PERFORM.
 
